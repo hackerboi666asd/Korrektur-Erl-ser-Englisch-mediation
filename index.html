@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Korrekturwerkzeug - Sprachmittlung (Mediation) - DSGVO-konform (Mistral AI)</title>
+    <style>
+        /* --- Grundlayout --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f8; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
+        h1 { color: #2c3e50; margin: 0 0 15px 0; font-size: 1.4rem; border-bottom: 2px solid #dfe6e9; padding-bottom: 10px; }
+        * { box-sizing: border-box; }
+
+        /* --- Container --- */
+        .main-wrapper { display: grid; grid-template-columns: 420px 1fr; gap: 20px; align-items: start; }
+        
+        /* Sidebar (Sticky) */
+        .input-sidebar { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+            border: 1px solid #e1e4e8; 
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+        }
+        
+        /* Results Area */
+        .results-area { display: flex; flex-direction: column; gap: 15px; min-height: calc(100vh - 40px); position: relative; }
+        
+        /* Loading Overlay */
+        .loading-overlay { position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(255,255,255,0.95); z-index: 100; display: none; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(4px); border-radius: 8px; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #2c3e50; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- Inputs --- */
+        label { font-weight: 700; font-size: 0.85em; display: block; margin-bottom: 4px; color: #2c3e50; text-transform: uppercase; letter-spacing: 0.5px; }
+        input[type="password"], textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; transition: border 0.2s; font-family: 'Segoe UI', sans-serif; font-size: 13px; line-height: 1.4; }
+        textarea { resize: vertical; }
+        input[type="password"]:focus, textarea:focus { border-color: #2c3e50; outline: none; }
+        
+        #studentInput { height: 140px; white-space: pre-wrap; }
+        #ehInput { height: 80px; }
+
+        /* Kriterien Box */
+        .criteria-box { background: #f8f9fa; padding: 10px; border: 1px solid #eee; border-radius: 4px; overflow-y: auto; max-height: 400px; }
+        .cb-header { font-weight: bold; font-size: 0.9em; margin: 12px 0 6px 0; color: #2980b9; border-bottom: 1px solid #e1e4e8; padding-bottom: 2px; }
+        .cb-header:first-child { margin-top: 0; }
+        .cb-item { display: flex; align-items: start; margin-bottom: 5px; font-size: 0.9em; color: #444; }
+        .cb-item input { margin-top: 3px; margin-right: 8px; }
+
+        /* Button */
+        button.primary-btn { background-color: #2c3e50; color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: all 0.2s; width: 100%; margin-top: 5px; font-size: 1em; }
+        button.primary-btn:hover { background-color: #34495e; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button.primary-btn:disabled { background-color: #bdc3c7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* --- Korrekturansicht --- */
+        .correction-container { display: flex; height: 50vh; gap: 15px; background: white; padding: 0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #e1e4e8; }
+        .text-panel { flex: 6; overflow-y: scroll; padding: 25px; border-right: 1px solid #eee; resize: horizontal; overflow-x: auto; min-width: 300px; background: #fafafa; }
+        .notes-panel { flex: 4; overflow-y: scroll; padding: 0; background: white; }
+
+        /* Zeilen im Text */
+        pre { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 15px; line-height: 1.8; margin: 0; counter-reset: line; white-space: pre-wrap; }
+        .line { display: block; position: relative; padding-left: 40px; border-bottom: 1px solid transparent; }
+        .line:hover { background-color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index: 1; }
+        .line::before { counter-increment: line; content: counter(line); position: absolute; left: 5px; color: #bbb; font-size: 11px; top: 4px; user-select: none; }
+
+        /* --- Highlighting Styles --- */
+        /* FEHLER */
+        .mark-r { border-bottom: 2px solid #e74c3c; background-color: rgba(231, 76, 60, 0.15); cursor: help; color: #c0392b; }
+        .mark-g { border-bottom: 2px solid #27ae60; background-color: rgba(39, 174, 96, 0.15); cursor: help; color: #219150; }
+        .mark-w { border-bottom: 2px solid #2980b9; background-color: rgba(41, 128, 185, 0.15); cursor: help; color: #1f618d; } /* Wortschatz Fehler */
+        .mark-a { border-bottom: 2px solid #8e44ad; background-color: rgba(142, 68, 173, 0.15); cursor: help; color: #7d3c98; }
+        .mark-z { border-bottom: 2px solid #16a085; background-color: rgba(22, 160, 133, 0.15); cursor: help; color: #117a65; }
+        .mark-i { border-bottom: 2px solid #f1c40f; background-color: rgba(241, 196, 15, 0.2); cursor: help; color: #333; } /* Inhalt Fehler */
+        
+        /* POSITIV */
+        .mark-w-pos { border-bottom: 2px solid #00acc1; background-color: rgba(0, 172, 193, 0.2); cursor: help; color: #006064; font-weight: 500; } /* Guter Wortschatz */
+        .mark-a-pos { border-bottom: 2px solid #00acc1; background-color: rgba(0, 172, 193, 0.2); cursor: help; color: #006064; font-weight: 500; } /* Guter Ausdruck */
+        
+        /* NEU: Guter Inhalt (I+) */
+        .mark-i-pos { border-bottom: 2px solid #f39c12; background-color: rgba(243, 156, 18, 0.25); cursor: help; color: #d35400; font-weight: 500; }
+
+        /* Tabelle */
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { text-align: left; border-bottom: 1px solid #ddd; padding: 8px; color: #666; font-weight: 600; background: #f8f9fa; position: sticky; top: 0; z-index: 5; }
+        td { border-bottom: 1px solid #f0f0f0; padding: 8px; vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        
+        .code-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; color: white; min-width: 25px; text-align: center; }
+        .bg-r { background-color: #e74c3c; } .bg-g { background-color: #27ae60; }
+        .bg-w { background-color: #2980b9; } .bg-a { background-color: #8e44ad; }
+        .bg-z { background-color: #16a085; } .bg-i { background-color: #f1c40f; color: #333; }
+        
+        /* Backgrounds für Positiv */
+        .bg-pos { background-color: #00acc1; box-shadow: 0 0 2px rgba(0,0,0,0.2); }
+        .bg-pos-i { background-color: #f39c12; box-shadow: 0 0 2px rgba(0,0,0,0.2); } /* Orange für Inhalt */
+
+        /* --- BE Übersicht --- */
+        .score-board { background: white; padding: 15px; border-radius: 8px; border: 1px solid #e1e4e8; display: flex; flex-direction: column; gap: 5px; }
+        .score-table { width: 100%; border-collapse: collapse; }
+        .score-table th { background: #f1f2f6; color: #2c3e50; font-size: 0.85rem; text-transform: uppercase; padding: 8px; text-align: left; border-bottom: 2px solid #dfe4ea; }
+        .score-table td { padding: 8px; border-bottom: 1px solid #eee; font-size: 0.95rem; }
+        .score-val { font-weight: bold; color: #2c3e50; text-align: right; }
+        .avg-row { background-color: #e8f6f3; font-weight: bold; border-top: 2px solid #dfe6e9; color: #16a085; }
+
+        /* --- Gutachten --- */
+        .gutachten-wrapper { flex: 3; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; min-height: 200px; }
+        .gutachten-box { background: white; padding: 15px; border-radius: 8px; border: 1px solid #e1e4e8; display: flex; flex-direction: column; }
+        .gutachten-box h3 { margin: 0 0 10px 0; font-size: 1em; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        .gutachten-text { flex: 1; border: 1px solid #eee; background: #fff; font-family: 'Segoe UI', sans-serif; line-height: 1.6; font-size: 0.95rem; color: #333; resize: none; outline: none; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <h1>Korrekturwerkzeug - Sprachmittlung (Mediation)</h1>
+
+    <div class="main-wrapper">
+        <div class="input-sidebar">
+            
+            <div style="background: #e8f5e9; padding: 10px; border-radius: 4px; border: 1px solid #c8e6c9;">
+                <label for="apiKey">1. Mistral API Key</label>
+                <input type="password" id="apiKey" placeholder="Hier Key einfügen..." autocomplete="off">
+            </div>
+
+            <div>
+                <label for="studentInput">2. Schülertext (Transkript, zeilengetreu)</label>
+                <textarea id="studentInput" placeholder="1. Schülertext hochauflösend scannen.<br> 2. Scan bei einer KI hochladen. 3. prompten: 'Transkribiere den Text in einen Code-Block. Behalte die Zeilenumbrüche exakt so bei, wie sie auf dem handgeschriebenen Blatt sind.', 4. hier einfügen."></textarea>
+            </div>
+
+            <div>
+                <label for="ehInput">3. Erwartungshorizont</label>
+                <textarea id="ehInput" placeholder="Stichpunkte: Aufgabenstellung, zentrale Aspekte etc."></textarea>
+            </div>
+
+            <div>
+                <label>4. Kriterien (auswählen!)</label>
+                <div class="criteria-box">
+                    <div class="cb-header">Inhaltliche Leistung</div>
+                    <div class="cb-item"><input type="checkbox" id="crit_info" checked> Informationsverarbeitung</div>
+                    <div class="cb-item"><input type="checkbox" id="crit_sit" checked> Adressatenbezug / Situationsangemessenheit</div>
+                    <div class="cb-item"><input type="checkbox" id="crit_textsorte" checked> Textsortenmerkmale</div>
+                    <div class="cb-item"><input type="checkbox" id="crit_kult" checked> Kulturspezifische Erläuterungen</div>
+                    <div class="cb-item"><input type="checkbox" id="crit_org" checked> Textorganisation und Lesbarkeit</div>
+                    
+                    <div class="cb-header" style="margin-top:10px;">Sprachliche Leistung</div>
+                    <div class="cb-item"><input type="checkbox" id="crit_korrekt" checked> Korrektheit der Zielsprache</div>
+                    <div class="cb-item"><input type="checkbox" id="crit_strat" checked> Strategien / Umgang mit der Textvorlage</div>
+                </div>
+            </div>
+
+            <button class="primary-btn" onclick="startAnalysis()">Analyse starten 🚀 (1-2min)</button>
+        </div>
+
+        <div class="results-area">
+            <div class="loading-overlay" id="loader">
+                <div class="spinner"></div>
+                <div style="font-weight: bold; color: #2c3e50;">Die KI analysiert den Text...</div>
+                <div style="font-size: 0.9em; color: #555;">Prüfe Erwartungshorizont & Sprache...</div>
+            </div>
+
+            <div class="correction-container">
+                <div class="text-panel" id="textPanel" onscroll="syncScroll('textPanel', 'notesPanel')">
+                    <pre id="renderedText"><span style="color:#999; font-style: italic; display:block; padding:10px;">Hier erscheint nach der Analyse der Schülertext inkl. Markierungen. Hinweis: Die Markierungen sind manchmal leicht verrutscht, da die KI nicht einzelne Wörter, sondern Token (Zeichenfolgen) zählt. Die KI kann Fehler machen! Die Verantwortlichkeit der Korrektur liegt immer bei der Lehrkraft.</span></pre>
+                </div>
+
+                <div class="notes-panel" id="notesPanel" onscroll="syncScroll('notesPanel', 'textPanel')">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 30px;">Z.</th>
+                                <th style="width: 40px;">Typ</th>
+                                <th>Korrektur / Anmerkung</th>
+                            </tr>
+                        </thead>
+                        <tbody id="notesTableBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="score-board">
+                <h3 style="margin:0 0 5px 0; color:#2c3e50; font-size:1rem;">Bewertungseinheiten (Übersicht)</h3>
+                <table class="score-table">
+                    <thead>
+                        <tr>
+                            <th>Kategorie</th>
+                            <th style="text-align:right;">BE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scoreTableBody">
+                        <tr><td colspan="2" style="color:#999; text-align:center;">Noch keine Analyse vorhanden.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="gutachten-wrapper">
+                <div class="gutachten-box">
+                    <h3>Inhaltliches Gutachten</h3>
+                    <textarea id="outContent" class="gutachten-text" readonly></textarea>
+                </div>
+                <div class="gutachten-box">
+                    <h3>Sprachliches Gutachten</h3>
+                    <textarea id="outLang" class="gutachten-text" readonly></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const API_URL = "https://api.mistral.ai/v1/chat/completions";
+    
+    async function startAnalysis() {
+        const apiKey = document.getElementById('apiKey').value.trim();
+        const studentText = document.getElementById('studentInput').value;
+        const ehText = document.getElementById('ehInput').value;
+        const loader = document.getElementById('loader');
+
+        if (!apiKey) { alert("Bitte API Key eingeben."); return; }
+        if (!studentText) { alert("Bitte Schülertext eingeben."); return; }
+
+        // --- AKTIVE KRITERIEN ---
+        let activeCriteria = [];
+        if(document.getElementById('crit_info').checked) activeCriteria.push("Informationsverarbeitung (Wichtig: Wurden alle Infos übertragen?)");
+        if(document.getElementById('crit_sit').checked) activeCriteria.push("Adressatenbezug / Situationsangemessenheit");
+        if(document.getElementById('crit_textsorte').checked) activeCriteria.push("Textsortenmerkmale");
+        if(document.getElementById('crit_kult').checked) activeCriteria.push("Kulturspezifische Erläuterungen (Additionen)");
+        if(document.getElementById('crit_org').checked) activeCriteria.push("Textorganisation und Lesbarkeit");
+        
+        if(document.getElementById('crit_korrekt').checked) activeCriteria.push("Korrektheit der Zielsprache");
+        if(document.getElementById('crit_strat').checked) activeCriteria.push("Strategien / Umgang mit der Textvorlage");
+
+        loader.style.display = 'flex';
+        document.querySelector('.primary-btn').disabled = true;
+
+        const systemPrompt = `
+Du bist ein erfahrener Oberstufen-Lehrer für Englisch. 
+Aufgabe: Korrektur einer **Sprachmittlungs-Aufgabe (Mediation)**.
+
+**1. TEXTANALYSE & MARKIERUNGEN:**
+Analysiere Zeile für Zeile. Nutze JSON.
+
+*FEHLER-Kategorien (nur wenn wirklich falsch):*
+- "mark-r": Rechtschreibung
+- "mark-g": Grammatik
+- "mark-w": Wortwahl (falsche Bedeutung)
+- "mark-a": Ausdruck (schwerfällig/undeutlich)
+- "mark-z": Zeichensetzung
+- "mark-i": Inhaltlicher Fehler / Wichtige Info fehlt / Falsch übertragen.
+
+*POSITIVE Kriterien (Lob ist wichtig!):*
+- "mark-w-pos": (W+) Besonders treffende, idiomatische Wortwahl.
+- "mark-a-pos": (A+) Besonders eleganter Ausdruck / Satzbau / gute Konnektoren.
+- "mark-i-pos": (I+) **Guter Inhalt / Erwartungshorizont getroffen:** Nutze dies, wenn eine im Erwartungshorizont geforderte Information präzise und sinngetreu in die Zielsprache übertragen wurde.
+
+**2. BEWERTUNGSRASRTER (0-10 Punkte):**
+Bewerte nur die aktiven Kriterien.
+Bei Sprachmittlung ist "Informationsverarbeitung" das wichtigste inhaltliche Kriterium.
+
+**3. GUTACHTEN:**
+Erstelle zwei deutsche Fließtexte (Inhalt & Sprache). Belege deine Urteile mit Zitaten.
+Gehe explizit darauf ein, ob die Punkte aus dem Erwartungshorizont gefunden wurden ("I+").
+
+**FORMAT (JSON):**
+{
+  "lines": [ { "text": "Zeilentext...", "marks": [{ "start": 0, "end": 5, "type": "mark-i-pos", "note": "Punkt aus Erwartungshorizont exakt getroffen!" }] } ],
+  "scores": [ { "label": "Kategorie Name", "points": 8.5 } ],
+  "reports": { "content": "Text...", "lang": "Text..." }
+}
+`;
+
+        const userPrompt = `
+SCHÜLERTEXT:
+${studentText}
+
+ERWARTUNGSHORIZONT:
+${ehText}
+
+AKTIVE KRITERIEN:
+${activeCriteria.join(", ")}
+
+Führe die Analyse durch. Markiere getroffene Erwartungshorizont-Punkte mit mark-i-pos!
+`;
+
+        try {
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                    model: "mistral-large-latest",
+                    messages: [ { role: "system", content: systemPrompt }, { role: "user", content: userPrompt } ],
+                    temperature: 0.1,
+                    response_format: { type: "json_object" }
+                })
+            });
+
+            if (!response.ok) throw new Error("API Fehler: " + response.status);
+
+            const data = await response.json();
+            const resultJSON = JSON.parse(data.choices[0].message.content);
+
+            renderResults(resultJSON);
+
+        } catch (e) {
+            console.error(e);
+            alert("Fehler bei der Analyse: " + e.message);
+        } finally {
+            loader.style.display = 'none';
+            document.querySelector('.primary-btn').disabled = false;
+        }
+    }
+
+    function renderResults(data) {
+        const textContainer = document.getElementById('renderedText');
+        const notesBody = document.getElementById('notesTableBody');
+        const scoreBody = document.getElementById('scoreTableBody');
+        
+        textContainer.innerHTML = '';
+        notesBody.innerHTML = '';
+        scoreBody.innerHTML = '';
+        
+        document.getElementById('outContent').value = (data.reports.content || "").replace(/\*\*/g, "");
+        document.getElementById('outLang').value = (data.reports.lang || "").replace(/\*\*/g, "");
+
+        // Scores
+        let totalPoints = 0;
+        let count = 0;
+        if (data.scores && data.scores.length > 0) {
+            data.scores.forEach(score => {
+                totalPoints += score.points;
+                count++;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${score.label}</td><td class="score-val">${score.points}</td>`;
+                scoreBody.appendChild(tr);
+            });
+            if (count > 0) {
+                const avg = (totalPoints / count).toFixed(2);
+                const trAvg = document.createElement('tr');
+                trAvg.className = "avg-row";
+                trAvg.innerHTML = `<td>Ø DURCHSCHNITT</td><td class="score-val">${avg} / 10</td>`;
+                scoreBody.appendChild(trAvg);
+            }
+        } else {
+            scoreBody.innerHTML = '<tr><td colspan="2">Keine Punkte.</td></tr>';
+        }
+
+        // Text & Marks
+        let lineCnt = 1;
+        data.lines.forEach(lineObj => {
+            const lineDiv = document.createElement('div');
+            lineDiv.className = 'line';
+            const txt = lineObj.text || "";
+            const marks = lineObj.marks || [];
+
+            if (marks.length === 0) {
+                lineDiv.textContent = txt;
+            } else {
+                marks.sort((a, b) => a.start - b.start);
+                let html = "";
+                let lastIdx = 0;
+                marks.forEach(mark => {
+                    if (mark.start < lastIdx) return; 
+                    html += escapeHtml(txt.substring(lastIdx, mark.start));
+                    
+                    const snippet = txt.substring(mark.start, mark.end);
+                    let markClass = (mark.type && mark.type.startsWith('mark-')) ? mark.type : 'mark-r';
+                    
+                    html += `<span class="${markClass}" title="${escapeHtml(mark.note)}">${escapeHtml(snippet)}</span>`;
+                    addTableRow(lineCnt, mark, snippet);
+                    lastIdx = mark.end;
+                });
+                html += escapeHtml(txt.substring(lastIdx));
+                lineDiv.innerHTML = html;
+            }
+            textContainer.appendChild(lineDiv);
+            lineCnt++;
+        });
+    }
+
+    function addTableRow(lineNum, mark, snippet) {
+        const tbody = document.getElementById('notesTableBody');
+        const row = document.createElement('tr');
+        
+        let badge = "ERR"; let cls = "bg-r";
+
+        if (mark.type === 'mark-r') { badge = "R"; cls = "bg-r"; }
+        else if (mark.type === 'mark-g') { badge = "G"; cls = "bg-g"; }
+        else if (mark.type === 'mark-w') { badge = "W"; cls = "bg-w"; }
+        else if (mark.type === 'mark-a') { badge = "A"; cls = "bg-a"; }
+        else if (mark.type === 'mark-z') { badge = "Z"; cls = "bg-z"; }
+        else if (mark.type === 'mark-i') { badge = "I"; cls = "bg-i"; }
+        
+        // POSITIVE
+        else if (mark.type === 'mark-w-pos') { badge = "W+"; cls = "bg-pos"; }
+        else if (mark.type === 'mark-a-pos') { badge = "A+"; cls = "bg-pos"; }
+        else if (mark.type === 'mark-i-pos') { badge = "I+"; cls = "bg-pos-i"; } // HIER: I+
+
+        row.innerHTML = `<td>${lineNum}</td><td><span class="code-badge ${cls}">${badge}</span></td><td><div style="font-weight:bold; color:#555; font-size:0.9em;">"${escapeHtml(snippet)}"</div>${escapeHtml(mark.note)}</td>`;
+        tbody.appendChild(row);
+    }
+
+    function escapeHtml(text) { return text ? text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : ""; }
+    function syncScroll(srcId, tgtId) {
+        const src = document.getElementById(srcId);
+        const tgt = document.getElementById(tgtId);
+        if(src && tgt) tgt.scrollTop = (src.scrollTop / (src.scrollHeight - src.offsetHeight)) * (tgt.scrollHeight - tgt.offsetHeight);
+    }
+</script>
+</body>
+</html>
