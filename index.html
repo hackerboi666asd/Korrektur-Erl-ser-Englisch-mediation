@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Korrekturwerkzeug - Sprachmittlung (Mediation) - DSGVO-konform (Mistral AI)</title>
+    <title>Korrekturwerkzeug - Sprachmittlung (Mediation)</title>
     <style>
         /* --- Grundlayout --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f4f6f8; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
@@ -117,7 +117,7 @@
 </head>
 <body>
 
-    <h1>Korrekturwerkzeug - Sprachmittlung (Mediation)</h1>
+    <h1>Korrekturwerkzeug - Sprachmittlung (Mediation) - DSGVO-konform (Mistral AI)</h1>
 
     <div class="main-wrapper">
         <div class="input-sidebar">
@@ -129,7 +129,7 @@
 
             <div>
                 <label for="studentInput">2. Schülertext (Transkript, zeilengetreu)</label>
-                <textarea id="studentInput" placeholder="1. Schülertext hochauflösend scannen.<br> 2. Scan bei einer KI hochladen. 3. prompten: 'Transkribiere den Text in einen Code-Block. Behalte die Zeilenumbrüche exakt so bei, wie sie auf dem handgeschriebenen Blatt sind.', 4. hier einfügen."></textarea>
+                <textarea id="studentInput" placeholder="1. Schülertext hochauflösend scannen. 2. Scan bei einer KI hochladen. 3. prompten: 'Transkribiere den Text in einen Code-Block. Behalte die Zeilenumbrüche exakt so bei, wie sie auf dem handgeschriebenen Blatt sind.', 4. hier einfügen."></textarea>
             </div>
 
             <div>
@@ -155,7 +155,18 @@
 
             <button class="primary-btn" onclick="startAnalysis()">Analyse starten 🚀 (1-2min)</button>
         </div>
+    </div>
 
+    <button class="primary-btn" onclick="startAnalysis()">Analyse starten 🚀 (1-2min)</button>
+
+    <div style="margin-top: 15px; font-size: 0.7em; color: #7f8c8d; line-height: 1.3; border-top: 1px solid #eee; padding-top: 10px;">
+        Die Analyse erfolgt auf Basis der geltenden Standards, unter Berücksichtigung der 
+        <a href="https://www.bildung.bremen.de/sixcms/media.php/13/20250602_KI-Handreichung_final.pdf" target="_blank" style="color: #2980b9; text-decoration: none; font-weight: 600;">
+            KI-Handreichung des Landes Bremen (2025)
+        </a>.
+    </div>
+
+</div> ```
         <div class="results-area">
             <div class="loading-overlay" id="loader">
                 <div class="spinner"></div>
