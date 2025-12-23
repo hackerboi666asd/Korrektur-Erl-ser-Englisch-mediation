@@ -113,11 +113,80 @@
         .gutachten-box { background: white; padding: 15px; border-radius: 8px; border: 1px solid #e1e4e8; display: flex; flex-direction: column; }
         .gutachten-box h3 { margin: 0 0 10px 0; font-size: 1em; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px; }
         .gutachten-text { flex: 1; border: 1px solid #eee; background: #fff; font-family: 'Segoe UI', sans-serif; line-height: 1.6; font-size: 0.95rem; color: #333; resize: none; outline: none; padding: 10px; border-radius: 4px; }
+
+        /* --- DARK MODE STYLES --- */
+        :root {
+            --bg-color: #f4f6f8;
+            --text-color: #333;
+            --card-bg: white;
+            --border-color: #e1e4e8;
+            --input-bg: white;
+            --input-border: #ccc;
+            --highlight-bg: rgba(231, 76, 60, 0.15);
+            --table-bg: #f8f9fa;
+            --table-border: #f0f0f0;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --card-bg: #2d2d2d;
+            --border-color: #404040;
+            --input-bg: #3a3a3a;
+            --input-border: #555;
+            --highlight-bg: rgba(231, 76, 60, 0.3);
+            --table-bg: #363636;
+            --table-border: #444;
+        }
+
+        [data-theme="dark"] body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        [data-theme="dark"] .input-sidebar,
+        [data-theme="dark"] .results-area,
+        [data-theme="dark"] .correction-container,
+        [data-theme="dark"] .score-board,
+        [data-theme="dark"] .gutachten-box,
+        [data-theme="dark"] .filter-controls {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+
+        [data-theme="dark"] input[type="password"],
+        [data-theme="dark"] textarea,
+        [data-theme="dark"] .gutachten-text {
+            background: var(--input-bg);
+            border-color: var(--input-border);
+            color: var(--text-color);
+        }
+
+        [data-theme="dark"] .mark-r { background-color: rgba(231, 76, 60, 0.3); }
+        [data-theme="dark"] .mark-g { background-color: rgba(39, 174, 96, 0.3); }
+        [data-theme="dark"] .mark-w { background-color: rgba(41, 128, 185, 0.3); }
+        [data-theme="dark"] .mark-a { background-color: rgba(142, 68, 173, 0.3); }
+        [data-theme="dark"] .mark-z { background-color: rgba(22, 160, 133, 0.3); }
+        [data-theme="dark"] .mark-i { background-color: rgba(241, 196, 15, 0.3); }
+
+        [data-theme="dark"] .mark-w-pos,
+        [data-theme="dark"] .mark-a-pos,
+        [data-theme="dark"] .mark-i-pos {
+            background-color: rgba(0, 172, 193, 0.3);
+        }
+
+        /* Toast Animationen */
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
     </style>
 </head>
 <body>
 
-    <h1>Korrekturwerkzeug Sprachmittlung (Mediation) - DSGVO-konform (durch Mistral AI)</h1>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h1 style="margin: 0;">Korrekturwerkzeug Sprachmittlung (Mediation) - DSGVO-konform (durch Mistral AI)</h1>
+        <button id="themeToggle" onclick="toggleTheme()" style="background: #34495e; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9em;">🌙 Dark Mode</button>
+    </div>
 
     <div class="main-wrapper">
         <div class="input-sidebar">
@@ -189,6 +258,48 @@
                 </div>
             </div>
 
+            <div class="filter-controls" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e1e4e8; margin-bottom: 15px;">
+                <h4 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 0.9em;">Filter Markierungen:</h4>
+                <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85em;">
+                        <input type="checkbox" id="filter-errors" checked onchange="applyFilters()">
+                        <span style="color: #e74c3c;">❌ Fehler</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85em;">
+                        <input type="checkbox" id="filter-positive" checked onchange="applyFilters()">
+                        <span style="color: #00acc1;">✅ Positive</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85em;">
+                        <input type="checkbox" id="filter-r" checked onchange="applyFilters()">
+                        <span class="code-badge bg-r" style="margin: 0;">R</span> Rechtschreibung
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85em;">
+                        <input type="checkbox" id="filter-g" checked onchange="applyFilters()">
+                        <span class="code-badge bg-g" style="margin: 0;">G</span> Grammatik
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85em;">
+                        <input type="checkbox" id="filter-w" checked onchange="applyFilters()">
+                        <span class="code-badge bg-w" style="margin: 0;">W</span> Wortwahl
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85em;">
+                        <input type="checkbox" id="filter-a" checked onchange="applyFilters()">
+                        <span class="code-badge bg-a" style="margin: 0;">A</span> Ausdruck
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85em;">
+                        <input type="checkbox" id="filter-z" checked onchange="applyFilters()">
+                        <span class="code-badge bg-z" style="margin: 0;">Z</span> Zeichensetzung
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85em;">
+                        <input type="checkbox" id="filter-i" checked onchange="applyFilters()">
+                        <span class="code-badge bg-i" style="margin: 0;">I</span> Inhalt
+                    </label>
+                </div>
+                <div style="margin-top: 10px;">
+                    <input type="text" id="search-notes" placeholder="In Anmerkungen suchen..."
+                           oninput="applyFilters()" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+            </div>
+
             <div class="score-board">
                 <h3 style="margin:0 0 5px 0; color:#2c3e50; font-size:1rem;">Bewertungseinheiten (Übersicht)</h3>
                 <table class="score-table">
@@ -219,7 +330,113 @@
 
 <script>
     const API_URL = "https://api.mistral.ai/v1/chat/completions";
-    
+
+    // --- CACHING SYSTEM ---
+    const Cache = {
+        save: function(key, data) {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (e) {
+                console.warn('Cache save failed:', e);
+            }
+        },
+
+        load: function(key) {
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : null;
+            } catch (e) {
+                console.warn('Cache load failed:', e);
+                return null;
+            }
+        },
+
+        clear: function(key) {
+            localStorage.removeItem(key);
+        }
+    };
+
+    // Cache-Keys
+    const CACHE_KEYS = {
+        API_KEY: 'mistral_api_key',
+        EXPECTATION_HORIZON: 'expectation_horizon',
+        THEME: 'theme_preference'
+    };
+
+    // Auto-load beim Start
+    window.addEventListener('DOMContentLoaded', function() {
+        const cachedApiKey = Cache.load(CACHE_KEYS.API_KEY);
+        const cachedEh = Cache.load(CACHE_KEYS.EXPECTATION_HORIZON);
+        const cachedTheme = Cache.load(CACHE_KEYS.THEME);
+
+        if (cachedApiKey) document.getElementById('apiKey').value = cachedApiKey;
+        if (cachedEh) document.getElementById('ehInput').value = cachedEh;
+        if (cachedTheme) {
+            document.documentElement.setAttribute('data-theme', cachedTheme);
+            updateThemeButton(cachedTheme);
+        }
+
+        // Cache-Button hinzufügen
+        addCacheButtons();
+    });
+
+    function updateThemeButton(theme) {
+        const button = document.getElementById('themeToggle');
+        if (button) {
+            button.textContent = theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+            button.style.background = theme === 'dark' ? '#f39c12' : '#34495e';
+        }
+    }
+
+    function addCacheButtons() {
+        const sidebar = document.querySelector('.input-sidebar');
+        const cacheControls = document.createElement('div');
+        cacheControls.className = 'cache-controls';
+        cacheControls.style.cssText = 'display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;';
+        cacheControls.innerHTML = `
+            <button onclick="cacheCurrentSettings()" style="flex: 1; padding: 8px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">💾 Speichern</button>
+            <button onclick="clearCache()" style="flex: 1; padding: 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em;">🗑️ Löschen</button>
+        `;
+        sidebar.appendChild(cacheControls);
+    }
+
+    function cacheCurrentSettings() {
+        const apiKey = document.getElementById('apiKey').value.trim();
+        const ehText = document.getElementById('ehInput').value.trim();
+
+        if (apiKey) Cache.save(CACHE_KEYS.API_KEY, apiKey);
+        if (ehText) Cache.save(CACHE_KEYS.EXPECTATION_HORIZON, ehText);
+
+        showToast('Einstellungen gespeichert!', 'success');
+    }
+
+    function clearCache() {
+        Cache.clear(CACHE_KEYS.API_KEY);
+        Cache.clear(CACHE_KEYS.EXPECTATION_HORIZON);
+
+        document.getElementById('apiKey').value = '';
+        document.getElementById('ehInput').value = '';
+
+        showToast('Cache geleert!', 'info');
+    }
+
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed; top: 20px; right: 20px; padding: 12px 20px;
+            border-radius: 4px; color: white; font-weight: bold; z-index: 1000;
+            background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : '#2980b9'};
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3); animation: slideIn 0.3s ease;
+        `;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
     async function startAnalysis() {
         const apiKey = document.getElementById('apiKey').value.trim();
         const studentText = document.getElementById('studentInput').value;
@@ -320,7 +537,116 @@ Führe die Analyse durch. Markiere getroffene Erwartungshorizont-Punkte mit mark
         }
     }
 
+    // --- FILTER SYSTEM ---
+    let currentAnalysisData = null; // Speichere Analyse-Daten global
+
+    function applyFilters() {
+        if (!currentAnalysisData) return;
+
+        const showErrors = document.getElementById('filter-errors').checked;
+        const showPositive = document.getElementById('filter-positive').checked;
+        const showR = document.getElementById('filter-r').checked;
+        const showG = document.getElementById('filter-g').checked;
+        const showW = document.getElementById('filter-w').checked;
+        const showA = document.getElementById('filter-a').checked;
+        const showZ = document.getElementById('filter-z').checked;
+        const showI = document.getElementById('filter-i').checked;
+        const searchTerm = document.getElementById('search-notes').value.toLowerCase();
+
+        // Filtere Zeilen neu rendern
+        renderFilteredResults(currentAnalysisData, {
+            showErrors, showPositive, showR, showG, showW, showA, showZ, showI, searchTerm
+        });
+    }
+
+    function renderFilteredResults(data, filters) {
+        const textContainer = document.getElementById('renderedText');
+        const notesBody = document.getElementById('notesTableBody');
+
+        textContainer.innerHTML = '';
+        notesBody.innerHTML = '';
+
+        let lineCnt = 1;
+        let filteredMarksCount = 0;
+
+        data.lines.forEach(lineObj => {
+            const lineDiv = document.createElement('div');
+            lineDiv.className = 'line';
+            const txt = lineObj.text || "";
+            const marks = lineObj.marks || [];
+
+            // Filtere Markierungen
+            const filteredMarks = marks.filter(mark => {
+                // Typ-Filter
+                const isError = mark.type.includes('mark-') && !mark.type.includes('-pos');
+                const isPositive = mark.type.includes('-pos');
+
+                if (!filters.showErrors && isError) return false;
+                if (!filters.showPositive && isPositive) return false;
+
+                // Spezifische Typen
+                if (mark.type === 'mark-r' && !filters.showR) return false;
+                if (mark.type === 'mark-g' && !filters.showG) return false;
+                if (mark.type === 'mark-w' && !filters.showW) return false;
+                if (mark.type === 'mark-a' && !filters.showA) return false;
+                if (mark.type === 'mark-z' && !filters.showZ) return false;
+                if (mark.type === 'mark-i' && !filters.showI) return false;
+
+                // Suchfilter
+                if (filters.searchTerm) {
+                    const noteText = (mark.note || "").toLowerCase();
+                    const snippetText = txt.substring(mark.start, mark.end).toLowerCase();
+                    if (!noteText.includes(filters.searchTerm) && !snippetText.includes(filters.searchTerm)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            if (filteredMarks.length === 0) {
+                lineDiv.textContent = txt;
+            } else {
+                filteredMarks.sort((a, b) => a.start - b.start);
+                let html = "";
+                let lastIdx = 0;
+                filteredMarks.forEach(mark => {
+                    if (mark.start < lastIdx) return;
+                    html += escapeHtml(txt.substring(lastIdx, mark.start));
+
+                    const snippet = txt.substring(mark.start, mark.end);
+                    let markClass = (mark.type && mark.type.startsWith('mark-')) ? mark.type : 'mark-r';
+
+                    html += `<span class="${markClass}" title="${escapeHtml(mark.note)}">${escapeHtml(snippet)}</span>`;
+                    addTableRow(lineCnt, mark, snippet);
+                    filteredMarksCount++;
+                    lastIdx = mark.end;
+                });
+                html += escapeHtml(txt.substring(lastIdx));
+                lineDiv.innerHTML = html;
+            }
+            textContainer.appendChild(lineDiv);
+            lineCnt++;
+        });
+
+        // Zeige Filter-Statistik
+        updateFilterStats(filteredMarksCount);
+    }
+
+    function updateFilterStats(count) {
+        let statsDiv = document.getElementById('filter-stats');
+        if (!statsDiv) {
+            statsDiv = document.createElement('div');
+            statsDiv.id = 'filter-stats';
+            statsDiv.style.cssText = 'margin-top: 10px; font-size: 0.8em; color: #666;';
+            document.querySelector('.filter-controls').appendChild(statsDiv);
+        }
+        statsDiv.textContent = `${count} Markierungen gefiltert angezeigt`;
+    }
+
     function renderResults(data) {
+        // Speichere Daten für Filter-Funktionalität
+        currentAnalysisData = data;
         const textContainer = document.getElementById('renderedText');
         const notesBody = document.getElementById('notesTableBody');
         const scoreBody = document.getElementById('scoreTableBody');
@@ -354,37 +680,8 @@ Führe die Analyse durch. Markiere getroffene Erwartungshorizont-Punkte mit mark
             scoreBody.innerHTML = '<tr><td colspan="2">Keine Punkte.</td></tr>';
         }
 
-        // Text & Marks
-        let lineCnt = 1;
-        data.lines.forEach(lineObj => {
-            const lineDiv = document.createElement('div');
-            lineDiv.className = 'line';
-            const txt = lineObj.text || "";
-            const marks = lineObj.marks || [];
-
-            if (marks.length === 0) {
-                lineDiv.textContent = txt;
-            } else {
-                marks.sort((a, b) => a.start - b.start);
-                let html = "";
-                let lastIdx = 0;
-                marks.forEach(mark => {
-                    if (mark.start < lastIdx) return; 
-                    html += escapeHtml(txt.substring(lastIdx, mark.start));
-                    
-                    const snippet = txt.substring(mark.start, mark.end);
-                    let markClass = (mark.type && mark.type.startsWith('mark-')) ? mark.type : 'mark-r';
-                    
-                    html += `<span class="${markClass}" title="${escapeHtml(mark.note)}">${escapeHtml(snippet)}</span>`;
-                    addTableRow(lineCnt, mark, snippet);
-                    lastIdx = mark.end;
-                });
-                html += escapeHtml(txt.substring(lastIdx));
-                lineDiv.innerHTML = html;
-            }
-            textContainer.appendChild(lineDiv);
-            lineCnt++;
-        });
+        // Gefilterte Ergebnisse anzeigen (alle Filter standardmäßig aktiviert)
+        applyFilters();
     }
 
     function addTableRow(lineNum, mark, snippet) {
@@ -414,6 +711,19 @@ Führe die Analyse durch. Markiere getroffene Erwartungshorizont-Punkte mit mark
         const src = document.getElementById(srcId);
         const tgt = document.getElementById(tgtId);
         if(src && tgt) tgt.scrollTop = (src.scrollTop / (src.scrollHeight - src.offsetHeight)) * (tgt.scrollHeight - tgt.offsetHeight);
+    }
+
+    function toggleTheme() {
+        const html = document.documentElement;
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+        html.setAttribute('data-theme', newTheme);
+        Cache.save(CACHE_KEYS.THEME, newTheme);
+
+        const button = document.getElementById('themeToggle');
+        button.textContent = newTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+        button.style.background = newTheme === 'dark' ? '#f39c12' : '#34495e';
     }
 </script>
 </body>
